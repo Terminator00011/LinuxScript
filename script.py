@@ -91,7 +91,7 @@ def write(doc, text):
     
 class Auto(object):
 
-    def updates(self):
+    def aaupdates(self):
         """Updates and upgrades the system"""
 
         os.chdir("/home/" + user)
@@ -104,22 +104,44 @@ class Auto(object):
 
         os.chdir("/home/" + user)
         subprocess.call(["ufw", "enable"])
+        subprocess.call(["ufw", "allow", "8080"])
+        subprocess.call(["ufw", "deny", "22"])
+        subprocess.call(["ufw", "deny", "23"])
+        subprocess.call(["ufw", "deny", "3389"])
         logging.info("firewall enabled")
 
 
-    def root(self):
+    def ssh(self):
         """Disables root login
             Changes 'PermitRootLogin' to 'PermitRootLogin no'
         """
 
         os.chdir("/home/" + user)
         os.chdir('/etc/ssh')
-        #TODO: Theory crafted, should test
         if path.isfile('sshd_config') is True: 
             if search("sshd_config", "PermitRootLogin") is True:
                 subprocess.call(['sed', '-i', '/^#/!s/PermitRootLogin/PermitRootLogin no', 'sshd_config'])
             else:
                 write("sshd_config", "PermitRootLogin no") 
+                logging.error('Could not find PermitRootLogin')
+
+            if search("sshd_config", "#Port 22") is True:
+                subprocess.call(["sed", "-i", "/#Port 22/c\Port 1024"])
+            else:
+                write("sshd_config", "Port 1024")
+                logging.error('Could not find port')
+
+        elif path.isfile("ssh_config") is True:
+            if search("ssh_config", "PermitRootLogin") is True:
+                subprocess.call(['sed', '-i', '/^#/!s/PermitRootLogin/PermitRootLogin no', 'ssh_config'])
+            else:
+                write("sshd_config", "PermitRootLogin no") 
+                logging.error('Could not find PermitRootLogin')
+            
+            if search("ssh_config", "#Port 22") is True:
+                subprocess.call(['sed', '-i', '/#Port 22/c\Port 1024', 'ssh_config'])
+            else:
+                write("sshd_config", "Port 1024") 
                 logging.error('Could not find PermitRootLogin')
         else:
             subprocess.call(['touch', 'sshd_config'])
@@ -143,6 +165,7 @@ class Auto(object):
 
 
     def password(self):
+        #TODO: Not replacing, needs debugging
         """Changes password requirements
         Automatically edits the login.defs file:
             PASS_MIN_DAYS -> PASS_MIN_DAYS 7
@@ -189,12 +212,12 @@ class Auto(object):
 
         if path.isfile("common-password") is True: 
             if search("common-password", "pam_unix.so") is True:
-                subprocess.call(['sed', '-i', '/^#/!s/pam_unix.so/c\pam_unix.so minlen=8 remember=5', 'common-password'])
+                subprocess.call(['sed', '-i', '/^#/!s/pam_unix.so/pam_unix.so minlen=8 remember=5', 'common-password'])
             else:
                 write("common-password", "pam_unix.so minlen=8 remember=5")
             
             if search("common-password", "pam.cracklib.so") is True:
-                subprocess.call(['sed', '-i', '/^#/!s/pam.cracklib.so/c\pam.crack.lib.so ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1', 'common-password'])
+                subprocess.call(['sed', '-i', '/^#/!s/pam.cracklib.so/pam.crack.lib.so ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1', 'common-password'])
             else:
                 write("common-password", "pam.crack.lib.so ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1")
         else:
@@ -203,9 +226,6 @@ class Auto(object):
             write("common-password", "pam.crack.lib.so ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1")
             logging.info("Had to create file common-password")
             
-
-
-
 
     def lockout(self):
         """Edits the lockout policy on password attempts
@@ -217,7 +237,7 @@ class Auto(object):
 
         if path.isfile("common-auth") is True:
             if search("common-auth", "pam_tally.so") is True:
-                subprocess.call(['sed', '-i', '/^#/!s/pam_tally.so/c\pam_tally.so deny=5 unlock_time=1800', 'common-auth'])
+                subprocess.call(['sed', '-i', '/^#/!s/pam_tally.so/pam_tally.so deny=5 unlock_time=1800', 'common-auth'])
             else:
                 write("common-auth", "pam_tally.so deny=5 unlock_time=1800")
         else:
@@ -239,13 +259,13 @@ class Auto(object):
 
 
     def sharedMemory(self):
-        #TODO: NEED TO TEST SED IN VMMMMM
+        #TODO: Haivng some kind of TypeError on line 36-38 r
         os.chdir("/home/" + user)
         os.chdir("/etc")
 
         if path.isfile("fstab.txt") is True: 
             if search("fstab.txt", "tmpfs") is True:
-                subprocess.call(['sed', '-i', '/^#/!s/tmpfs/c\tmpfs /call/shm', 'fstab.txt'])
+                subprocess.call(['sed', '-i', '/^#/!s/tmpfs/tmpfs /call/shm', 'fstab.txt'])
             else:
                 write("fstab.txt", "tmpfs /call/shm")
         else:
@@ -285,10 +305,6 @@ class Auto(object):
         subprocess.call(["ls", "-Ra", "*"])
         subprocess.call(["rm", "-rfv", ""])
 
-    def rootKit(self):
-        os.chdir("/home/" + user)
-        subprocess.call(["apt-get", "install", "chkrootkit"])
-
 
     def appstore(self):
         os.chdir("/home/" + user)
@@ -309,26 +325,39 @@ class Auto(object):
         subprocess.call(['apt-get', 'install', 'ukuu'])
     '''
 
-
-    def remoteDesktop(self):
-        os.chdir("/home/" + user)
-        subprocess.call(["lsof", "-i :" + "3389"])
-
-
-    def killSSH(self):
-        os.chdir("/home/" + user)
-        subprocess.call(["lsof", "-i :" + '22'])
-
-
-    def killtelnet(self):
-        os.chdir("/home/" + user)
-        subprocess.call(["lsof", "-i :" + '23'])
-
-
     def cookie(self):
         os.chdir("/home/" + user)
         subprocess.call(['sysctl', '-n', 'net.ipv4.tcp_syncookies'])
 
+    #TODO: Unknown code
+    
+    def groupAddition(self):
+        os.chdir("/home/" + user)
+        subprocess.call(['cut', '-d', '-f', '1', '/etc/passwd'])
+    
+
+    def privateDirectory(self):
+        os.chdir("/home/" + user)
+        subprocess.call(["chmod", "700", "/home/" + user])
+    
+
+    def encrypt(self):
+        os.chdir("/home/" + user)
+        subprocess.call(["apt-get", "install", "ecryptfs-utils", "cryptsetup"])
+        subprocess.call(["ecryptfs-migrate-home", "-u", user])
+    
+    def audit(self):
+        #TODO: Conflicts with other audit, idk 
+        os.chdir("/home/" + user)
+        subprocess.call(["apt-get", "install", "auditd"])
+        subprocess.call(["auditd", "start"])
+    
+
+    def rootDisable(self):
+        os.chdir("/home/" + user)
+        subprocess.call(["passwd", "-l", "root"])
+
+            
 
 class Printable(object):
 
@@ -362,77 +391,107 @@ class Printable(object):
         subprocess.call(["cat", "/etc/passwd"])
     
     def audit(self):
+        #TODO: Conflicts with other audit, idk
         os.chdir("/home/" + user)
         subprocess.call(["apt-get", "install", "auditd"])
         subprocess.call(["auditctl", "-e", "1"])
         subprocess.call(["nano", "/etc/audit/atuditd.conf"])
 
-    def checkDirectory(user):
+
+    def noUserFiles(self):
+        os.chdir("/home/" + user)
+        subprocess.call(["find", "/", "-nogroup", "-nouser"])
+    
+    def rootKit(self):
+        os.chdir("/home/" + user)
+        subprocess.call(["apt-get", "install", "chkrootkit"])
+        subprocess.call(["chrootkit"])
+
+
+
+class Input(object):
+    def checkDirectory(self):
         os.chdir("/home/" + user)
         os.chdir(' /home')
+        user = input("Enter the username you want to check: ")
         subprocess.call(["sudo", "ls"< "-Ra", user])
 
-    def filePermission(user, permission, access, filepath):
+    def filePermission(self, user, permission, access, filepath):
         os.chdir("/home/" + user)
         subprocess.call(["chmod", user, permission, access, filepath])
 
-    def addGroup(name):
+    def addGroup(self, name):
         os.chdir("/home/" + user)
         subprocess.call(["addgroup", "[", name, "]"])
 
-    def closePort(port):
+    def closePort(self, port):
         os.chdir("/home/" + user)
         subprocess.call(["lsof", "-i :" + port])
 
-    def printByMod(name, time):
+    def printByMod(self, name, time):
         os.chdir("/home/" + user)
         subprocess.call(["find", "/", "-name", "name", "-mtime", time])
 
-    def removeApp(appName):
+    def removeApp(self, appName):
         os.chdir("/home/" + user)
         subprocess.call(["apt-get", "--purge remove", appName])
 
 
-    def searchByFileType(fileLocation,fileType):
+    def searchByFileType(self, fileLocation,fileType):
         os.chdir("/home/" + user)
         subprocess.call(["find ", + fileLocation, "-name " + "*." + fileType])
 
     #make sure to put contents in quotes ig?
-    def searchByFileContents(fileLocation, contents):
+    def searchByFileContents(self, fileLocation, contents):
         os.chdir("/home/" + user)
         subprocess.call(["find" + fileLocation + "-type f -exec grep" + contents + "'{}' \; -print"])
 
 
-    def deleteFile(name):
+    def deleteFile(self, name):
         os.chdir("/home/" + user)
         subprocess.call(["find", ".", "-name", name ,"-delete"])
 
 
-    def removeUser(user):
+    def removeUser(self, user):
         os.chdir("/home/" + user)
         subprocess.call(["userdel", "-r", user])
 
-    def userID(id):
+    def userID(self, id):
         os.chdir("/home" + user)
         subprocess.call(["id", "-u", id])
 
-    def userpasswd(user, password, self):
+    def userpasswd(self, user, password, self):
         os.chdir("/home/" + user)
         subprocess.call(["chpasswd"])
-
-class TestClass():
-    def byan(self):
-        print("Nyan")
-
-    def aester(self):
-        print("Imma poop")
     
-    
+    def passwdCheck(self, user):
+        os.chdir("/home/" + user)
+        subprocess.call(["passwd", "--status", user])
+
+    def switch(arg):
+        switcher = {
+            0: checkDirectory,
+            1: filePermission,
+            2: addGroup,
+            3: closePort,
+            4: printByMod,
+            5: removeApp,
+            6: searchByFileType,
+            7: searchByFileContents,
+            8: deleteFile, 
+            9: removeUser,
+            10: userID,
+            11: userpasswd,
+            12: passwdCheck
+        }
 
 
 if __name__ == "__main__":
+    int loop = 0
+    edit = Input()
     #These are the auto running methods
-    #TODO: Works, but alphabetical order????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+   
+    #TODO: Works, but alphabetical order?
     '''
     tester = TestClass()
     attrs = (getattr(tester, name) for name in dir(tester))
@@ -442,15 +501,37 @@ if __name__ == "__main__":
             method()
         except TypeError:
             pass
-
-    '''    
     '''
+    #TODO: Seet root passowrd to more complex one 
     print("Welcome to Jacks python script")
     print(" ")
     print("Automatic points [1]")
     print(" ")
-    print("Editable points [2]")
+    print("Printable points [2]")
     print(" ")
     print("Choose what actions to run [3]")
     int value = input("Enter 1,2,3: ")
-    '''    
+
+    if (value =1):
+        tester = Auto()
+        attrs = (getattr(tester, name) for name in dir(tester))
+        methods = ifilter(inspect.ismethod, attrs)
+        for method in methods:
+            try:
+                method()
+            except TypeError:
+                pass
+    elif (value = 2):
+        tester = Printable()
+        attrs = (getattr(tester, name) for name in dir(tester))
+        methods = ifilter(inspect.ismethod, attrs)
+        for method in methods:
+            try:
+                method()
+            except TypeError:
+                pass
+    elif(value =3):
+        while(loop = 0):
+            int choice = input("Enter the dictionary number of what method you want to run. Look in the readme to see numbers: ")
+            edit.switch(choice)
+            loop = input("Enter 1 to exit loop, Enter 0 to repeat: ")
