@@ -149,7 +149,7 @@ class Auto(object):
             logging.info("Had to create the file sshd_config")
 
 
-    def guest(self):
+    def zzguest(self):
         """Disables guest account
         Automatically changes 'allow-guest' to allow-guest=false
         """
@@ -162,6 +162,8 @@ class Auto(object):
             subprocess.call(['touch', 'lightdm.conf'])
             write("lightdm.conf", "allow-guest=false")
             logging.info('Had to create file lightdm.conf')
+        
+        subprocess.call(["restart", "lightdm"])
 
 
     def password(self):
@@ -177,17 +179,17 @@ class Auto(object):
         os.chdir('/etc')
         if path.isfile("login.defs") is True:
             if search("login.defs", "PASS_MIN_DAYS") is True:
-                subprocess.call(['sed', '-i', '/^#/!s/PASS_MIN_DAYS/PASS_MIN_DAYS 7', "login.defs"])
+                subprocess.call(['sed', '-i', '/^#/!s/.*PASS_MIN_DAYS/PASS_MIN_DAYS 7/', "login.defs"])
             else:
                 write("login.defs", "PASS_MIN_DAYS 7")
 
             if search("login.defs", "PASS_MAX_DAYS") is True:
-                subprocess.call(['sed', '-i', '/^#/!s/PASS_MAX_DAYS/PASS_MAX_DAYS 90', "login.defs"])
+                subprocess.call(['sed', '-i', '/^#/!s/.*PASS_MAX_DAYS/PASS_MAX_DAYS 90/', "login.defs"])
             else: 
                 write("login.defs", "PASS_MAX_DAYS 90")
 
             if search("login.defs", "PASS_WARN_AGE") is True:
-                subprocess.call(['sed', '-i', '/^#/!s/PASS_WARN_AGE/PASS_WARN_AGE 14', "login.defs"])
+                subprocess.call(['sed', '-i', '/^#/!s/.*PASS_WARN_AGE/PASS_WARN_AGE 14/', "login.defs"])
             else:
                 write("login.defs", "PASS_WARN_AGE 14")
 
@@ -219,9 +221,11 @@ class Auto(object):
             if search("common-password", "pam.cracklib.so") is True:
                 subprocess.call(['sed', '-i', '/^#/!s/pam.cracklib.so/pam.crack.lib.so ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1', 'common-password'])
             else:
+                subprocess.call(["apt-get", "install", "libpam-cracklib"])
                 write("common-password", "pam.crack.lib.so ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1")
         else:
             subprocess.call('touch', 'common-password')
+            subprocess.call(["apt-get", "install", "libpam-cracklib"])
             write("common-password", "pam_unix.so minlen=8 remember=5")
             write("common-password", "pam.crack.lib.so ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1")
             logging.info("Had to create file common-password")
@@ -298,12 +302,7 @@ class Auto(object):
         """
     '''
 
-    def media(self):
-        #TODO: could delete all media in here 
-        os.chdir("/home/" + user)
-        subprocess.call(["cd", "/home"])
-        subprocess.call(["ls", "-Ra", "*"])
-        subprocess.call(["rm", "-rfv", ""])
+    
 
 
     def appstore(self):
@@ -406,6 +405,12 @@ class Printable(object):
         os.chdir("/home/" + user)
         subprocess.call(["apt-get", "install", "chkrootkit"])
         subprocess.call(["chrootkit"])
+    
+    def media(self):
+        #TODO: could delete all media in here 
+        os.chdir("/home/" + user)
+        subprocess.call(["cd", "/home"])
+        subprocess.call(["ls", "-Ra", "*"])
 
 
 
@@ -460,7 +465,7 @@ class Input(object):
         os.chdir("/home" + user)
         subprocess.call(["id", "-u", id])
 
-    def userpasswd(self, user, password, self):
+    def userpasswd(self, user, password):
         os.chdir("/home/" + user)
         subprocess.call(["chpasswd"])
     
@@ -487,11 +492,13 @@ class Input(object):
 
 
 if __name__ == "__main__":
-    int loop = 0
+    loop = 0
     edit = Input()
+    a = Auto()
     #These are the auto running methods
    
     #TODO: Works, but alphabetical order?
+    a.password()
     '''
     tester = TestClass()
     attrs = (getattr(tester, name) for name in dir(tester))
@@ -501,7 +508,7 @@ if __name__ == "__main__":
             method()
         except TypeError:
             pass
-    '''
+    
     #TODO: Seet root passowrd to more complex one 
     print("Welcome to Jacks python script")
     print(" ")
@@ -535,3 +542,4 @@ if __name__ == "__main__":
             int choice = input("Enter the dictionary number of what method you want to run. Look in the readme to see numbers: ")
             edit.switch(choice)
             loop = input("Enter 1 to exit loop, Enter 0 to repeat: ")
+    '''
