@@ -495,12 +495,8 @@ if __name__ == "__main__":
     loop = 0
     edit = Input()
     a = Auto()
-    #These are the auto running methods
-   
-    #TODO: Works, but alphabetical order?
-    a.password()
-    '''
-    tester = TestClass()
+
+    tester = Auto()
     attrs = (getattr(tester, name) for name in dir(tester))
     methods = ifilter(inspect.ismethod, attrs)
     for method in methods:
@@ -509,7 +505,8 @@ if __name__ == "__main__":
         except TypeError:
             pass
     
-    #TODO: Seet root passowrd to more complex one 
+    #TODO: Seet root passowrd to more complex one
+    '''
     print("Welcome to Jacks python script")
     print(" ")
     print("Automatic points [1]")
@@ -519,7 +516,7 @@ if __name__ == "__main__":
     print("Choose what actions to run [3]")
     int value = input("Enter 1,2,3: ")
 
-    if (value =1):
+    if (value = 1):
         tester = Auto()
         attrs = (getattr(tester, name) for name in dir(tester))
         methods = ifilter(inspect.ismethod, attrs)
@@ -543,3 +540,4 @@ if __name__ == "__main__":
             edit.switch(choice)
             loop = input("Enter 1 to exit loop, Enter 0 to repeat: ")
     '''
+   
