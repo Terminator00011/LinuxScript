@@ -345,11 +345,12 @@ class Auto(object):
         subprocess.call(["apt-get", "install", "ecryptfs-utils", "cryptsetup"])
         subprocess.call(["ecryptfs-migrate-home", "-u", user])
     
-    def audit(self):
-        #TODO: Conflicts with other audit, idk 
+    def zzaudit(self):
+        #TODO: Conflicts with other audit, idk
         os.chdir("/home/" + user)
         subprocess.call(["apt-get", "install", "auditd"])
-        subprocess.call(["auditd", "start"])
+        subprocess.call(["auditctl", "-e", "1"])
+        subprocess.call(["nano", "/etc/audit/atuditd.conf"])
     
 
     def rootDisable(self):
@@ -388,13 +389,6 @@ class Printable(object):
 
         os.chdir("/home/" + user)
         subprocess.call(["cat", "/etc/passwd"])
-    
-    def audit(self):
-        #TODO: Conflicts with other audit, idk
-        os.chdir("/home/" + user)
-        subprocess.call(["apt-get", "install", "auditd"])
-        subprocess.call(["auditctl", "-e", "1"])
-        subprocess.call(["nano", "/etc/audit/atuditd.conf"])
 
 
     def noUserFiles(self):
@@ -492,10 +486,6 @@ class Input(object):
 
 
 if __name__ == "__main__":
-    loop = 0
-    edit = Input()
-    a = Auto()
-
     tester = Auto()
     attrs = (getattr(tester, name) for name in dir(tester))
     methods = ifilter(inspect.ismethod, attrs)
